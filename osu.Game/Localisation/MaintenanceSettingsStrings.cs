@@ -55,6 +55,12 @@ namespace osu.Game.Localisation
         public static LocalisableString DeleteAllBeatmaps => new TranslatableString(getKey(@"delete_all_beatmaps"), @"Delete ALL beatmaps");
 
         /// <summary>
+        /// "Export ALL beatmaps"
+        /// </summary>
+        public static LocalisableString ExportAllBeatmaps => new TranslatableString(getKey(@"export_all_beatmaps"), @"Export ALL beatmaps");
+
+
+        /// <summary>
         /// "Delete ALL beatmap videos"
         /// </summary>
         public static LocalisableString DeleteAllBeatmapVideos => new TranslatableString(getKey(@"delete_all_beatmap_videos"), @"Delete ALL beatmap videos");

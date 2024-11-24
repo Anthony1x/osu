@@ -440,6 +440,18 @@ namespace osu.Game.Beatmaps
 
         public Task ExportLegacy(BeatmapSetInfo beatmap) => legacyBeatmapExporter.ExportAsync(beatmap.ToLive(Realm));
 
+        public void ExportAll()
+        {
+            Realm.Write(r =>
+            {
+                IQueryable<BeatmapSetInfo>? items = r.All<BeatmapSetInfo>().Where(s => !s.DeletePending && !s.Protected);
+
+                foreach (var item in items)
+                {
+                    ExportLegacy(item);
+                }
+            });
+        }
         private void updateHashAndMarkDirty(BeatmapSetInfo setInfo)
         {
             setInfo.Hash = beatmapImporter.ComputeHash(setInfo);

@@ -15,6 +15,7 @@ namespace osu.Game.Overlays.Settings.Sections.Maintenance
         protected override LocalisableString Header => CommonStrings.Beatmaps;
 
         private SettingsButton deleteBeatmapsButton = null!;
+        private SettingsButton exportBeatmapsButton = null!;
         private SettingsButton deleteBeatmapVideosButton = null!;
         private SettingsButton resetOffsetsButton = null!;
         private SettingsButton restoreButton = null!;
@@ -33,6 +34,17 @@ namespace osu.Game.Overlays.Settings.Sections.Maintenance
                         deleteBeatmapsButton.Enabled.Value = false;
                         Task.Run(() => beatmaps.Delete()).ContinueWith(_ => Schedule(() => deleteBeatmapsButton.Enabled.Value = true));
                     }, DeleteConfirmationContentStrings.Beatmaps));
+                }
+            });
+
+            Add(exportBeatmapsButton = new SettingsButton
+            {
+                Text = MaintenanceSettingsStrings.ExportAllBeatmaps,
+                Action = () =>
+                {
+                    exportBeatmapsButton.Enabled.Value = false;
+
+                    Task.Run(beatmaps.ExportAll).ContinueWith(_ => Schedule(() => exportBeatmapsButton.Enabled.Value = true));
                 }
             });
 
