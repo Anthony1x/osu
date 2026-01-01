@@ -60,6 +60,11 @@ namespace osu.Game.Localisation
         public static LocalisableString IntroSequence => new TranslatableString(getKey(@"intro_sequence"), @"Intro sequence");
 
         /// <summary>
+        /// "Random"
+        /// </summary>
+        public static LocalisableString IntroRandom => new TranslatableString(getKey(@"intro_random"), @"Random");
+
+        /// <summary>
         /// "Background source"
         /// </summary>
         public static LocalisableString BackgroundSource => new TranslatableString(getKey(@"background_source"), @"Background source");
@@ -83,6 +88,11 @@ namespace osu.Game.Localisation
         /// "Right mouse drag to absolute scroll"
         /// </summary>
         public static LocalisableString RightMouseScroll => new TranslatableString(getKey(@"right_mouse_scroll"), @"Right mouse drag to absolute scroll");
+
+        /// <summary>
+        /// "Show converts"
+        /// </summary>
+        public static LocalisableString ShowConverts => new TranslatableString(getKey(@"show_converts"), @"Show converts");
 
         /// <summary>
         /// "Show converted beatmaps"
@@ -158,6 +168,11 @@ namespace osu.Game.Localisation
         /// "True Random"
         /// </summary>
         public static LocalisableString TrueRandom => new TranslatableString(getKey(@"true_random"), @"True Random");
+
+        /// <summary>
+        /// "Selected Mods"
+        /// </summary>
+        public static LocalisableString SelectedMods => new TranslatableString(getKey(@"selected_mods"), @"Selected Mods");
 
         private static string getKey(string key) => $@"{prefix}:{key}";
     }

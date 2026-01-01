@@ -2,20 +2,26 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Sockets;
+using System.Net.WebSockets;
+using System.Threading.Tasks;
 using osu.Framework;
 using osu.Framework.Allocation;
 using osu.Framework.Bindables;
 using osu.Framework.Configuration;
 using osu.Framework.Logging;
+using osu.Framework.Platform;
 using osu.Framework.Statistics;
 using osu.Game.Beatmaps;
 using osu.Game.Configuration;
 using osu.Game.Database;
 using osu.Game.Models;
+using osu.Game.Online.API;
 using osu.Game.Online.API.Requests.Responses;
 using osu.Game.Overlays;
 using osu.Game.Rulesets;
@@ -36,11 +42,11 @@ namespace osu.Game.Utils
 
         private readonly OsuGame game;
 
-        public SentryLogger(OsuGame game)
+        public SentryLogger(OsuGame game, Storage? storage = null)
         {
             this.game = game;
 
-            if (!game.IsDeployedBuild || !game.CreateEndpoints().WebsiteRootUrl.EndsWith(@".ppy.sh", StringComparison.Ordinal))
+            if (!game.IsDeployedBuild || !game.CreateEndpoints().WebsiteUrl.EndsWith(@".ppy.sh", StringComparison.Ordinal))
                 return;
 
             sentrySession = SentrySdk.Init(options =>
@@ -49,14 +55,18 @@ namespace osu.Game.Utils
                 options.AutoSessionTracking = true;
                 options.IsEnvironmentUser = false;
                 options.IsGlobalModeEnabled = true;
+                options.CacheDirectoryPath = storage?.GetFullPath(string.Empty);
                 // The reported release needs to match version as reported to Sentry in .github/workflows/sentry-release.yml
-                options.Release = $"osu@{game.Version.Replace($@"-{OsuGameBase.BUILD_SUFFIX}", string.Empty)}";
+                options.Release = $"osu@{game.Version.Split('-').First()}";
             });
 
             Logger.NewEntry += processLogEntry;
         }
 
-        ~SentryLogger() => Dispose(false);
+        ~SentryLogger()
+        {
+            Dispose(false);
+        }
 
         public void AttachUser(IBindable<APIUser> user)
         {
@@ -215,19 +225,34 @@ namespace osu.Game.Utils
             }
         }
 
+        private static readonly HashSet<int> ignored_io_exception_hresults =
+        [
+            // see https://stackoverflow.com/a/9294382 for how these are synthesised
+            unchecked((int)0x80070020), // ERROR_SHARING_VIOLATION
+            unchecked((int)0x80070027), // ERROR_HANDLE_DISK_FULL
+            unchecked((int)0x80070070), // ERROR_DISK_FULL
+        ];
+
         private bool shouldSubmitException(Exception exception)
         {
             switch (exception)
             {
-                case IOException ioe:
-                    // disk full exceptions, see https://stackoverflow.com/a/9294382
-                    const int hr_error_handle_disk_full = unchecked((int)0x80070027);
-                    const int hr_error_disk_full = unchecked((int)0x80070070);
+                // disk I/O failures, invalid formats, etc.
 
-                    if (ioe.HResult == hr_error_handle_disk_full || ioe.HResult == hr_error_disk_full)
+                case IOException ioe:
+                    if (ignored_io_exception_hresults.Contains(ioe.HResult))
                         return false;
 
                     break;
+
+                case UnauthorizedAccessException:
+                case SharpCompress.Common.InvalidFormatException:
+                    return false;
+
+                // connectivity failures
+
+                case TimeoutException te:
+                    return !te.Message.Contains(@"elapsed without receiving a message from the server");
 
                 case WebException we:
                     switch (we.Status)
@@ -238,6 +263,16 @@ namespace osu.Game.Utils
                     }
 
                     break;
+
+                case WebSocketException:
+                case SocketException:
+                    return false;
+
+                // stuff that should really never make it to sentry
+
+                case APIAccess.WebRequestFlushedException:
+                case TaskCanceledException:
+                    return false;
             }
 
             return true;
